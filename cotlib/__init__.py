@@ -137,6 +137,15 @@ class reaction:
                 else:
                     self.products.add((int(match.groups()[0]),match.groups()[1]))
 
+        reac_list = [item[1] for item in self.reactants]
+        prod_list = [item[1] for item in self.products]
+
+        if len(reac_list) != len(set(reac_list)):
+            raise ValueError("The reactants were badly formatted: there are repeated species")
+
+        if len(prod_list) != len(set(prod_list)):
+            raise ValueError("The products were badly formatted: there are repeated species")
+
         for reac in R:
             if self.reactants == reac.reactants and self.products == reac.products:
                 raise ValueError("there can't be two equal reactions")
@@ -179,6 +188,10 @@ class renet:
                 self.ins_reaction(reaction)
 
         self.cln_Rx()
+        self.createA()
+        self.createB()
+
+        self.S = self.B - self.A
 
 
 
@@ -202,27 +215,67 @@ class renet:
         self.R_x.append(r)
         return True
 
+    #createA(): Create reactants matrix
+    def createA(self):
 
-    def in_Rx(name):
-        if not(isinstance(name,str)):
-            raise TypeError("in_M() expects a string")
-        for i,elem in enumerate(M):
-            if name == elem.name:
-                return True, i
-        return False, -1
+        self.A = np.zeros(  (len(self.X) , len(self.R_x) ) )
 
-    def isSM(self, S):
-        #M should be np.array
-        vars = np.shape(S)[1]
-        eqs1 = np.shape(S)[0]
+        for i,r in enumerate(self.R_x):
+
+            for j,e in enumerate(self.X):
+
+                for m in r.reactants:
+                    if m[1] == e.name:
+                        self.A[j][i] = m[0]
+
+
+    #createB(): Create products matrix
+    def createB(self):
+
+        self.B = np.zeros(  (len(self.X) , len(self.R_x) ) )
+
+        for i,r in enumerate(self.R_x):
+
+            for j,e in enumerate(self.X):
+
+                for m in r.products:
+                    if m[1] == e.name:
+                        self.B[j][i] = m[0]
+
+
+    #show_x(): Display a list with all elements in X and its indexes
+    def show_X(self):
+        for i, elem in enumerate(self.X):
+            print "["+str(i)+"]: "+str(elem)
+
+    #show_Rx(): Display all reactions in R_x
+    def show_Rx(self):
+        for i,reac in enumerate(self.R_x):
+            print "["+str(i)+"]: "+str(reac)
+
+    #isSM(): Verify if this reaction network is overproduced
+    def isSM(self):
+
+        #vars is the numbers of columns of S. Represents
+        # the  number of components of the unknow flux vector 'v'
+        vars = np.shape(self.S)[1]
+
+        #eqs1 is the numbers of rows of S. Represents
+        # the number of inequations introduced in the LP problem.
+        eqs1 = np.shape(self.S)[0]
+
+        #eqs2 is the numbers of columns of S. Represents
+        # the lower bound inequations introduced in the LP problem.
         eqs2 = vars
+
         I = np.identity(vars)
-        A = S
+        A = self.S
         A = np.concatenate((A, I), axis=0)
         A = -A
         b0 =  np.zeros(eqs1)
         b1 = -np.ones(eqs2)
         b = np.concatenate((b0, b1), axis=0)
+
         c = np.ones(vars)
 
         A = co.matrix(A)
@@ -236,3 +289,69 @@ class renet:
 
 
 
+    #isOverproduced(i): Verify if species m_i is overproduced. Use show_X() to list all indexes.
+    def isOverproduced(self,i):
+
+        if i >= len(self.X) or i < 0:
+            raise ValueError("Index out of bound. A non-negative integer less than len(X) expected.")
+
+        #vars is the numbers of columns of S. Represents
+        # the  number of components of the unknow flux vector 'v'
+        vars = np.shape(self.S)[1]
+
+        #eqs1 is the numbers of rows of S. Represents
+        # the number of inequations introduced in the LP problem.
+        eqs1 = np.shape(self.S)[0]
+
+        #eqs2 is the numbers of columns of S. Represents
+        # the lower bound inequations introduced in the LP problem.
+        eqs2 = vars
+
+        I = np.identity(vars)
+        A = self.S
+        A = np.concatenate((A, I), axis=0)
+        A = -A
+
+        b =  np.zeros(eqs1+eqs2)
+        b[i] = -1
+
+        c = np.ones(vars)
+
+        A = co.matrix(A)
+        b = co.matrix(b)
+        c = co.matrix(c)
+
+        co.solvers.options['show_progress']=False
+        sol=co.solvers.lp(c,A,b)
+
+        return bool(sol['x'])
+
+    #show_x(): Display a list with all overproduced elements in X
+    def showOverproduced(self):
+        boolean = True
+        for i, elem in enumerate(self.X):
+            if(self.isOverproduced(i)):
+                print "["+str(i)+"]: "+str(elem)
+                boolean = False
+
+        if (boolean): print "None"
+
+
+    #isClosed(): Return True if X is closed (False if not).
+    def isClosed(self):
+        producedSet = set()
+        for r in self.R_x:
+            aux = set([item[1] for item in r.products])
+            producedSet = producedSet.union(aux)
+        #if the elements produced by R_x is subset of X
+        return producedSet.issubset(set(self.X))
+
+    #isSSM(): Return True if X is semi self-maintaining (False if not).
+    def isSSM(self):
+        producedSet = set()
+        for r in self.R_x:
+            aux = set([item[1] for item in r.products])
+            producedSet = producedSet.union(aux)
+        #if X is subset of the elements produced by R_x
+
+        return set(self.X).issubset(producedSet)

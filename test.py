@@ -1,47 +1,70 @@
 # *-* coding: utf-8 *-*
 
 import cotlib
-import numpy as np
-
-S0 = np.array([[-1  , 1], [ 1 , -2]])
-S1= np.array([[ 1, -1,  0,  0],
-       [ 0,  1, -1,  1],
-       [ 0,  0,  1, -2]])
 
 
-e = list()
-e.append(cotlib.species("H2O"))
-e.append(cotlib.species("CO2"))
-e.append(cotlib.species("NaCL"))
-e.append(cotlib.species("CHO3"))
+#Creating species. Note: it's case sensitive.
+cotlib.species("A")
+cotlib.species("B")
+cotlib.species("C")
+
+cotlib.species("a")
+cotlib.species("b")
 
 
+#Creating reactions
+cotlib.reaction("-> A")
+cotlib.reaction("A  -> B")
+cotlib.reaction("B  -> C")
+cotlib.reaction("2 C  -> B")
 
-cotlib.rm_species("NaCL")
+cotlib.reaction(" a → b")
+cotlib.reaction("2b → a")
 
-print cotlib.in_M("CO2")
-print cotlib.in_M("H2O")
+cotlib.reaction("  -> Hello + World")
 
-
-
+#Displaying all species in M (global species set)
+print "M := \n"
 cotlib.show_M()
 
-
-A = cotlib.reaction('2 Arbol+ 3 H2O + 5 velas -> Hola + Mundo')
-A = cotlib.reaction('CO2 + H2O -> H2CO3')
-A = cotlib.reaction(' -> H2CO3')
-print ""
-cotlib.show_M()
-print ""
-
-A=cotlib.renet([0])
-B=cotlib.renet([0,1])
-C=cotlib.renet([0,1,4,6])
-
-D=cotlib.renet([7])
+#Displaying all reactions in R (global reactions set)
+print "\nR := \n"
+cotlib.show_R()
 
 
-print A.R_x
-print B.R_x
-print C.R_x
-print D.R_x
+RN1 = cotlib.renet([0,1,2])
+RN2 = cotlib.renet([3,4])
+
+#Playing with RN1
+
+print "\nReaction Network #1:"
+print "=====================\n"
+print "Set X:"
+RN1.show_X()
+print "\nSet R_x:"
+RN1.show_Rx()
+print "\nIs closed?:"
+print "\t"+str(RN1.isClosed())
+print "Is SSM?:"
+print "\t"+str(RN1.isSSM())
+print "Is SM?:"
+print "\t"+str(RN1.isSM())
+print "\nList of all overproduced species in X:"
+RN1.showOverproduced()
+
+print"\n\n"
+
+print "\nReaction Network #2:"
+print "=====================\n"
+print "Set X:"
+RN2.show_X()
+print "\nSet R_x:"
+RN2.show_Rx()
+print "\nIs closed?:"
+print "\t"+str(RN2.isClosed())
+print "Is SSM?:"
+print "\t"+str(RN2.isSSM())
+print "Is SM?:"
+print "\t"+str(RN2.isSM())
+print "\nList of all overproduced species in X:"
+RN2.showOverproduced()
