@@ -344,7 +344,7 @@ class renet:
             aux = set([item[1] for item in r.products])
             producedSet = producedSet.union(aux)
         #if the elements produced by R_x is subset of X
-        return producedSet.issubset(set(self.X))
+        return producedSet.issubset(set(self.X_names))
 
     #isSSM(): Return True if X is semi self-maintaining (False if not).
     def isSSM(self):
@@ -354,4 +354,4 @@ class renet:
             producedSet = producedSet.union(aux)
         #if X is subset of the elements produced by R_x
 
-        return set(self.X).issubset(producedSet)
+        return set(self.X_names).issubset(producedSet)
