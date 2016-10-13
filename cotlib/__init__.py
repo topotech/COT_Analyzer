@@ -20,6 +20,7 @@ import cotlib
 import cvxopt as co
 import numpy as np
 import re
+import hasselib
 
 """
 Global variables and functions
@@ -194,7 +195,48 @@ class renet:
         self.S = self.B - self.A
 
 
+    # This let the user to add reactions with empty reactants outside X
+    def add_species(self, indexes):
+        if not(isinstance(indexes,list)):
+            raise TypeError("add_inflow() expects a list of integers")
+        if not (all(isinstance(x, int) for x in indexes)):
+            raise TypeError("add_inflow() expects a list of integers")
 
+
+        for i in indexes:
+            if not (M[i].name in self.X_names):
+                self.X.append(M[i])
+                self.X_names.add(M[i].name)
+
+        for elem in self.X:
+            for reaction in elem.myReactions:
+                self.ins_reaction(reaction)
+
+        self.cln_Rx()
+        self.createA()
+        self.createB()
+
+        self.S = self.B - self.A
+
+
+    # This let the user to add reactions with empty reactants outside X
+    def add_inflow(self, indexes):
+        if not(isinstance(indexes,list)):
+            raise TypeError("add_inflow() expects a list of integers")
+        if not (all(isinstance(x, int) for x in indexes)):
+            raise TypeError("add_inflow() expects a list of integers")
+
+        for i in indexes:
+            if len(R[i].reactants) == 0:
+                self.ins_reaction(R[i])
+            else:
+                raise ValueError("Malformed input. All reactant sets need to be empty.")
+
+        self.cln_Rx()
+        self.createA()
+        self.createB()
+
+        self.S = self.B - self.A
 
     #cln_Rx(): Clean reaction: just leave the reactions which can be fired by X
     def cln_Rx(self):
@@ -243,6 +285,38 @@ class renet:
                         self.B[j][i] = m[0]
 
 
+
+    #close(): Turn X into it's closure (add all the species produced by R_x into X)
+    def close(self):
+        if not(self.isClosed()):
+            indexes = list()
+            producedSet = set()
+
+            for r in self.R_x:
+                aux = set([item[1] for item in r.products])
+                producedSet = producedSet.union(aux)
+
+            for name in producedSet:
+                indexes.append( in_M(name)[1] )
+
+            #Reinitializing the reaction network
+            for i in indexes:
+                if not (M[i].name in self.X_names):
+                    self.X.append(M[i])
+                    self.X_names.add(M[i].name)
+
+            for elem in self.X:
+                for reaction in elem.myReactions:
+                    self.ins_reaction(reaction)
+
+            self.cln_Rx()
+            self.createA()
+            self.createB()
+
+            self.S = self.B - self.A
+
+
+
     #show_x(): Display a list with all elements in X and its indexes
     def show_X(self):
         for i, elem in enumerate(self.X):
@@ -255,6 +329,9 @@ class renet:
 
     #isSM(): Verify if this reaction network is overproduced
     def isSM(self):
+        #if X is empty, then it's SM
+        if len(self.X) == 0:
+            return True
 
         #vars is the numbers of columns of S. Represents
         # the  number of components of the unknow flux vector 'v'
@@ -355,3 +432,59 @@ class renet:
         #if X is subset of the elements produced by R_x
 
         return set(self.X_names).issubset(producedSet)
+
+    def hierarchy_noDecomp(self):
+        #Defining set with global indexes
+        S = []
+        for elem in self.X:
+            S.append(in_M(elem.name)[1])
+        S = set(S)
+
+
+        length = len(S)
+        P = hasselib.powerset(S)
+        H = [None]*( length + 1 ) #Defining size of list
+        for i in range ( length + 1 ):
+            H[i] = [j for j in P if len(j) == i]
+        for H_level in H:
+            for elem in H_level:
+                elem.calc_greater_neighbours(H)
+
+        '''
+        Visit_queue = list([H[0][0]]) #Enqueuing the first (empty) subset
+        '''
+        Visit_queue = P #Temporary
+
+        org_list = []
+        while (Visit_queue):
+            curr_elem = Visit_queue.pop()
+            curr_renet = renet(list(curr_elem.set))
+            if(curr_renet.isClosed()):
+                curr_elem.isClosed = True
+            else:
+                del curr_renet
+                continue
+
+            if(curr_renet.isSSM()):
+                curr_elem.isSSM = True
+            else:
+                del curr_renet
+                continue
+
+            if(curr_renet.isSM()):
+                curr_elem.isSM = True
+            else:
+                del curr_renet
+                continue
+
+            if( curr_elem.isClosed and curr_elem.isSSM and curr_elem.isSM ):
+                curr_elem.isOrg = True
+                del curr_renet
+                org_list.append(curr_elem)
+                if curr_elem.greater != None:
+                    for next_elem in curr_elem.greater:
+                        if not(next_elem in Visit_queue):
+                            Visit_queue.insert(0,next_elem)
+
+        return org_list
+

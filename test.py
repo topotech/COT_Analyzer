@@ -1,6 +1,7 @@
 # *-* coding: utf-8 *-*
 
 import cotlib
+import copy
 
 
 #Creating species. Note: it's case sensitive.
@@ -35,6 +36,8 @@ cotlib.show_R()
 RN1 = cotlib.renet([0,1,2])
 RN2 = cotlib.renet([3,4])
 
+
+
 #Playing with RN1
 
 print "\nReaction Network #1:"
@@ -68,3 +71,77 @@ print "Is SM?:"
 print "\t"+str(RN2.isSM())
 print "\nList of all overproduced species in X:"
 RN2.showOverproduced()
+
+RN3= copy.deepcopy(RN1)
+RN1.add_inflow([0,6])
+
+print"\n\n"
+print "\nReaction Network #1` (w/inflow):"
+print "=====================\n"
+print "Set X:"
+RN1.show_X()
+print "\nSet R_x:"
+RN1.show_Rx()
+print "\nIs closed?:"
+print "\t"+str(RN1.isClosed())
+print "Is SSM?:"
+print "\t"+str(RN1.isSSM())
+print "Is SM?:"
+print "\t"+str(RN1.isSM())
+print "\nList of all overproduced species in X:"
+RN1.showOverproduced()
+
+RN1.close()
+
+print"\n\n"
+print "\nReaction Network #1`` (closed):"
+print "=====================\n"
+print "Set X:"
+RN1.show_X()
+print "\nSet R_x:"
+RN1.show_Rx()
+print "\nIs closed?:"
+print "\t"+str(RN1.isClosed())
+print "Is SSM?:"
+print "\t"+str(RN1.isSSM())
+print "Is SM?:"
+print "\t"+str(RN1.isSM())
+print "\nList of all overproduced species in X:"
+RN1.showOverproduced()
+
+print"\n\n"
+print "\nReaction Network #3`` (copia):"
+print "=====================\n"
+print "Set X:"
+RN3.show_X()
+print "\nSet R_x:"
+RN3.show_Rx()
+print "\nIs closed?:"
+print "\t"+str(RN3.isClosed())
+print "Is SSM?:"
+print "\t"+str(RN3.isSSM())
+print "Is SM?:"
+print "\t"+str(RN3.isSM())
+print "\nList of all overproduced species in X:"
+RN3.showOverproduced()
+
+RN0 = cotlib.renet([])
+RN0.add_inflow([0,6])
+RN0.add_species([1])
+RN0.close()
+
+print"\n\n"
+print "\nReaction Network #0 (empty):"
+print "=====================\n"
+print "Set X:"
+RN0.show_X()
+print "\nSet R_x:"
+RN0.show_Rx()
+print "\nIs closed?:"
+print "\t"+str(RN0.isClosed())
+print "Is SSM?:"
+print "\t"+str(RN0.isSSM())
+print "Is SM?:"
+print "\t"+str(RN0.isSM())
+print "\nList of all overproduced species in X:"
+RN0.showOverproduced()
