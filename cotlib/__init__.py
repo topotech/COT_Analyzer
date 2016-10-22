@@ -198,9 +198,9 @@ class renet:
     # This let the user to add reactions with empty reactants outside X
     def add_species(self, indexes):
         if not(isinstance(indexes,list)):
-            raise TypeError("add_inflow() expects a list of integers")
+            raise TypeError("add_species() expects a list of integers")
         if not (all(isinstance(x, int) for x in indexes)):
-            raise TypeError("add_inflow() expects a list of integers")
+            raise TypeError("add_species() expects a list of integers")
 
 
         for i in indexes:
@@ -433,58 +433,158 @@ class renet:
 
         return set(self.X_names).issubset(producedSet)
 
+    # hierarchy_noDecomp() Returns the reference to Hasse graph and a list of organizations.
     def hierarchy_noDecomp(self):
-        #Defining set with global indexes
+
+        # Save global indexes to inflow (empty) reactions.
+        R_inflow = list()
+        for i,my_reac in enumerate(self.R_x):
+            if len(my_reac.reactants) == 0:
+                for j,global_reac in enumerate(R):
+                    if my_reac.reactants == global_reac.reactants and my_reac.products == global_reac.products:
+                        R_inflow.append(j)
+
+        # Defining set with global indexes
+        # (a.k.a. not using the local indexes of this network)
         S = []
         for elem in self.X:
             S.append(in_M(elem.name)[1])
         S = set(S)
 
 
+        # Constructing the graph (adding the reference
+        # to the neighbours of each element in the list H.
         length = len(S)
         P = hasselib.powerset(S)
-        H = [None]*( length + 1 ) #Defining size of list
+        H = [None]*( length + 1 ) #Defining size of list according
+                                  # to the height of Hasse Diag.
         for i in range ( length + 1 ):
             H[i] = [j for j in P if len(j) == i]
         for H_level in H:
             for elem in H_level:
-                elem.calc_greater_neighbours(H)
+                elem.calc_neighbours(H)
 
         '''
         Visit_queue = list([H[0][0]]) #Enqueuing the first (empty) subset
         '''
-        Visit_queue = P #Temporary
+        Visit_queue = P
 
         org_list = []
         while (Visit_queue):
-            curr_elem = Visit_queue.pop()
+            curr_elem = Visit_queue.pop(0)
+            if(curr_elem.isVisited):
+                continue
+            else:
+                curr_elem.isVisited = True
+
             curr_renet = renet(list(curr_elem.set))
+            curr_renet.add_inflow(R_inflow)
+
             if(curr_renet.isClosed()):
                 curr_elem.isClosed = True
+                curr_elem.closure = curr_elem
             else:
                 del curr_renet
+                self.seek_closure(curr_elem,length,R_inflow)
                 continue
 
             if(curr_renet.isSSM()):
                 curr_elem.isSSM = True
             else:
                 del curr_renet
+                curr_elem.isSSM = False
+                curr_elem.isSM = False
+                curr_elem.isOrg = False
                 continue
 
             if(curr_renet.isSM()):
                 curr_elem.isSM = True
             else:
                 del curr_renet
+                curr_elem.isSM = False
+                curr_elem.isOrg = False
                 continue
 
             if( curr_elem.isClosed and curr_elem.isSSM and curr_elem.isSM ):
                 curr_elem.isOrg = True
                 del curr_renet
                 org_list.append(curr_elem)
-                if curr_elem.greater != None:
-                    for next_elem in curr_elem.greater:
-                        if not(next_elem in Visit_queue):
-                            Visit_queue.insert(0,next_elem)
 
-        return org_list
 
+        return H, org_list
+    # Search for minimal closure for NON-CLOSED sets
+    def seek_closure(self, hasse_element, max_cardinality, R_inflow):
+        height = len(hasse_element.set) # 'Level' of initial element in Hasse diagram by cardinality
+        curr_level = height+1 #Setting the next level as the first to vist
+        curr_greater = hasse_element.greater
+        FoundIt=False
+        FoundClosure = None
+        breadcrumb = list([hasse_element])
+
+        while (curr_level <= max_cardinality):   # Si aún no llega al tope
+            next_greater = set()                 # Crea una lista auxiliar
+            if curr_greater != None:
+                for e in curr_greater:               # Recorre todos los vecinos próximos
+                    breadcrumb.append(e)
+                    if e.greater != None:
+                        next_greater.update(set(e.greater))  # Va creando la nueva lista de vecinos
+                    if(e.isVisited):
+                        continue
+                    else:
+                        e.isVisited = True
+
+                    if FoundIt:
+                        e.isClosed = False
+
+                    curr_renet = renet(list(e.set))  # Instancia red reacciones
+                    curr_renet.add_inflow(R_inflow)  #Agrega el inflow
+
+                    if(curr_renet.isClosed()):       #Si es cerrado, flagear
+                        FoundIt = True
+                        e.isVisited = False
+                        e.isClosed = True
+                        e.closure = e
+                        FoundClosure = e
+                    else:
+                        e.isClosed = False
+                    del curr_renet                   #Limpiar referencia
+
+                if FoundIt:
+                    break
+                curr_level += 1                     # Pasa al siguiente nivel
+                curr_greater = list(next_greater)   # El auxiliar pasa a prinicipal
+
+        if FoundClosure != None:
+            for e in breadcrumb:
+                if e.set.issubset(FoundClosure.set):
+                    e.closure = FoundClosure
+
+    # Test simple connection between species from Self (or 'X') with m_i
+    def IsConnected (self,  i):
+        m = M[i]
+        sR_x = set(self.R_x)
+        sR = set(R)
+        sR_unused =  sR - sR_x
+        sR_m = set(m.myReactions)
+        sR_xUm = sR_x.union(sR_m)
+        sxUm = self.X_names.union(m.name)
+
+        aux = list()
+
+        for myreaction in sR_xUm:
+            reactants = set([item[1] for item in myreaction.reactants])
+            if not (reactants.issubset(sxUm)):
+                aux.append(myreaction)
+        for item in aux:
+            sR_xUm.remove(item)
+
+        sR_new = sR_xUm - sR_x
+
+        for myreaction in sR_new:
+            reactants = set([item[1] for item in myreaction.reactants])
+            products = set([item[1] for item in myreaction.products])
+
+        if ( reactants.union(products).isdisjoint(self.X_names) ):
+            return False
+        else:
+            return True

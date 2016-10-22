@@ -6,12 +6,17 @@ class HasseElem:
     def __init__(self,iterable):
         self.set = set(iterable)
         self.level = len(self.set)
-        self.greater = None
+        self.greater = None #Sets which contain current set (reference)
+        self.lesser = [] #Sets contained in current set (reference)
+        self.closure = None #The minimal closure (reference)
 
-        self.isClosed = False
-        self.isSSM = False
-        self.isSM = False
-        self.isOrg = False
+
+        self.isClosed = None
+        self.isSSM = None
+        self.isSM = None
+        self.isOrg = None
+        self.isVisited = False
+
 
     def __repr__(self):
         return str(self.set)
@@ -20,7 +25,7 @@ class HasseElem:
         return len(self.set)
 
     '''H(asse) list is needed to search neighbour'''
-    def calc_greater_neighbours(self,H):
+    def calc_neighbours(self,H):
         ''' If this is the top element, break'''
         if self.level == len(H)-1:
             return self.greater
@@ -30,6 +35,9 @@ class HasseElem:
         for h in H[j]:
             if (self.set == self.set & h.set):
                 self.greater.append(h)
+                h.lesser.append(self)
+        if len(self.lesser) == 0:
+            self.lesser = None
         return self.greater
 
 

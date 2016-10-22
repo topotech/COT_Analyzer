@@ -14,10 +14,11 @@ cotlib.species("b")
 
 #Creating reactions
 cotlib.reaction("-> A")
+cotlib.reaction("-> c")
 cotlib.reaction("A  -> B")
 cotlib.reaction("B  -> C")
 cotlib.reaction("2 C  -> B")
-
+cotlib.reaction("-> d")
 cotlib.reaction(" a → b")
 cotlib.reaction("2b → a")
 
@@ -53,12 +54,44 @@ print "\nList of all overproduced species in X:"
 RN1.showOverproduced()
 
 print"\n\n"
+print "\nReaction Network #2:"
+print "=====================\n"
+print "Set X:"
+RN2.show_X()
+print "\nSet R_x:"
+RN2.show_Rx()
+print "\nIs closed?:"
+print "\t"+str(RN2.isClosed())
+print "Is SSM?:"
+print "\t"+str(RN2.isSSM())
+print "Is SM?:"
+print "\t"+str(RN2.isSM())
+print "\nList of all overproduced species in X:"
+RN2.showOverproduced()
 
+print"\n\n"
 
 print "\nNow the organizations inside the power-set:"
 print "=============================================\n"
 
 L = RN1.hierarchy_noDecomp()
-print L
+print "Organizations from RN1: "+str(L[1])
+RN1.add_inflow([1,5])
+L = RN1.hierarchy_noDecomp()
+print "Organizations from RN1 plus two unrelated inflows: "+str(L[1])
+L = RN2.hierarchy_noDecomp()
+print "Organizations from RN2: "+str(L[1])
 
 
+print "===\nAll the closures from RN2\n==="
+for h in L[0]:
+    for e in h:
+        print "Gcl("+str(e)+")\t:= " + str(e.closure) + ";"
+print "===\n"
+
+
+print RN2.IsConnected(2)
+print ""
+cotlib.reaction(" C + a → C ")
+print ""
+print RN2.IsConnected(2)
