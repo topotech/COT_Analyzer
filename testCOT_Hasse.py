@@ -83,12 +83,18 @@ L = RN2.hierarchy_noDecomp()
 print "Organizations from RN2: "+str(L[1])
 
 
+'''
 print "===\nAll the closures from RN2\n==="
+mydi={}
+for i, elem in enumerate(cotlib.M):
+    mydi[str(i)]=str(elem)
+
+print mydi
 for h in L[0]:
     for e in h:
-        print "Gcl("+str(e)+")\t:= " + str(e.closure) + ";"
+        print "Gcl("+str(mydi[e])+")\t:= " + str(e.closure) + ";"
 print "===\n"
-
+'''
 
 print RN2.IsConnected(2)
 print ""

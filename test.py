@@ -33,11 +33,11 @@ print "\nR := \n"
 cotlib.show_R()
 
 
-RN1 = cotlib.renet([0,1,2])
-RN2 = cotlib.renet([3,4])
+#RN1 = cotlib.renet([0,1,2])
+RN2 = cotlib.renet([1])
 
 
-
+'''
 
 #Playing with RN1
 
@@ -47,6 +47,16 @@ print "Set X:"
 RN1.show_X()
 print "\nSet R_x:"
 RN1.show_Rx()
+
+RN1.close()
+'''
+print "______"
+RN2.show_X()
+print "----"
+RN2.show_Rx()
+print RN2.isClosed()
+
+'''
 print "\nIs closed?:"
 print "\t"+str(RN1.isClosed())
 print "Is SSM?:"
@@ -55,6 +65,7 @@ print "Is SM?:"
 print "\t"+str(RN1.isSM())
 print "\nList of all overproduced species in X:"
 RN1.showOverproduced()
+
 
 print"\n\n"
 
@@ -146,3 +157,33 @@ print "Is SM?:"
 print "\t"+str(RN0.isSM())
 print "\nList of all overproduced species in X:"
 RN0.showOverproduced()
+
+
+
+
+
+#Creating reactions
+cotlib.reaction("x -> y+z")
+cotlib.reaction("x+y  -> x")
+cotlib.species("w")
+
+RN3 = cotlib.renet([7,8,9,10])
+
+print"\n\n"
+print "\nReaction Network #3:"
+print "=====================\n"
+print "Set X:"
+RN3.show_X()
+print "\nSet R_x:"
+RN3.show_Rx()
+print "\nIs closed?:"
+print "\t"+str(RN3.isClosed())
+print "Is SSM?:"
+print "\t"+str(RN3.isSSM())
+print "Is SM?:"
+print "\t"+str(RN3.isSM())
+print "\nList of all overproduced species in X:"
+RN3.showOverproduced()
+
+
+'''
