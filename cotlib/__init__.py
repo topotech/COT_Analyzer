@@ -19,10 +19,10 @@ and reactions created, called M and R respectively.
 import cvxopt as co
 import numpy as np
 import re
-import hasselib
 import networkx as nx
 import matplotlib.pyplot as plt
 import os
+import time
 
 """
 Global variables and functions
@@ -581,7 +581,15 @@ class renet:
         return consumedSet.issubset(producedSet)
 
     #Obtain a hierchy of closed sets (returns a Networkx graph)
-    def reactant_closure (self, add_separables=False, verbose=False, render=False,save_plot=False,save_graph=False,print_log=False):
+    def verbose_reactantclosure(self,ratio, number_of_nodes):
+        print "Curent ratio max_X_size/size_of_M  : "+( "%0.2f" % (ratio*100))
+        print "Number of sets (nodes) in the graph: "+str(number_of_nodes)
+
+
+
+    def reactant_closure (self, add_separables=False, verbose=False, render=False,save_plot=False,save_graph=False,print_log=False,sbml_filename="",timeout=0):
+        if timeout:
+            initial_time = time.time()
         total_of_species = len(self.X)
         # Save global indexes to inflow (empty) reactions.
         R_inflow = list()
@@ -601,10 +609,19 @@ class renet:
                         R_inflow.append(j)
         tree_of_closed_sets = list()
         if print_log:
-            i = 0
-            while os.path.exists("graph_log"+str(i)+".log"):
-                i += 1
-            my_log_filename = "graph_log"+str(i)+".log"
+            if sbml_filename:
+                if os.path.exists(sbml_filename+str(".log")):
+                    i = 0
+                    while os.path.exists(sbml_filename+str(i)+".log"):
+                        i += 1
+                    my_log_filename = sbml_filename+str(i)+".log"
+                else:
+                    my_log_filename=sbml_filename+str(".log")
+            else:
+                i = 0
+                while os.path.exists("graph_log"+str(i)+".log"):
+                    i += 1
+                my_log_filename = "graph_log"+str(i)+".log"
             my_log_string = ""
 
 
@@ -677,6 +694,9 @@ class renet:
                 self.verbose_reactantclosure((float(max_number_of_species)/total_of_species),len(tree_of_closed_sets))
             if print_log:
                 self.log_printer(my_log_filename,my_log_string)
+                if timeout:
+                    if (time.time()- initial_time > timeout):
+                            raise RuntimeError("Function execution exceeded timeout.")
                 my_log_string = ""
 
 
@@ -685,6 +705,9 @@ class renet:
                     self.verbose_reactantclosure(float(max_number_of_species)/total_of_species ,len(tree_of_closed_sets))
                 if print_log:
                     self.log_printer(my_log_filename,my_log_string)
+                    if timeout:
+                        if (time.time()- initial_time > timeout):
+                                raise RuntimeError("Function execution exceeded timeout.")
                     my_log_string = ""
                 for j in closed_reactants:
                     if i.my_set.issuperset(j.my_set): continue
@@ -783,45 +806,13 @@ class renet:
                 self.verbose_reactantclosure(float(max_number_of_species)/total_of_species ,len(tree_of_closed_sets))
             if print_log:
                 self.log_printer(my_log_filename,my_log_string)
+                if timeout:
+                    if (time.time()- initial_time > timeout):
+                        raise RuntimeError("Function execution exceeded timeout.")
                 my_log_string = ""
             if verbose:
                 print "Ending with level " + str(k)
             k += 1
-
-
-        #Note to self: Verify which sets are closed during the loop (we're overkilling
-        # it if we have to iterate the whole set again).
-        for element in tree_of_closed_sets:
-            if len(element.closure) == 0:
-                element.IsClosed = True
-                print "OJO"
-                continue
-            if element.closure[0] == element.my_set:
-                element.IsClosed = True
-            else:
-                element.IsClosed = False
-
-
-        '''
-        for i in tree_of_closed_sets:
-            print i.my_set
-            if len(i.united_to_form)>0:
-                print "  Uniones:"
-                for j in i.united_to_form:
-                    print "     "+str(j)
-            else:
-                print "  Uniones:"
-                print "     set([])"
-            if len(i.closure)>0:
-                print "  closure:"
-                for j in i.closure:
-                    print "     "+str(j)
-            else:
-                print "  closure:"
-                print "     set([])"
-            print "  closure:"
-            print "     "+str(i.IsClosed)
-        '''
 
 
         #Graph construction: Construction of the graph following algorithm beheaviour
@@ -878,7 +869,7 @@ class renet:
 
         #Adding edges
         for i in tree_of_closed_sets:
-            if i.IsClosed == True:
+            if i.level > 0:
                 closed_only.append(i)
 
         H = nx.Graph()
@@ -935,7 +926,10 @@ class renet:
         for i in range(len(slice_points)-1):
             M = closed_only[slice_points[i]:slice_points[i+1]]
             curr_cardinality = cardinality_counter[slice_points[i]]
-            y = float(i)/(len(cardinality_counter)-1)
+            if len(cardinality_counter)==1:
+                y = 0.5
+            else:
+                y = float(i)/(len(cardinality_counter)-1)
             for j in range(len(M)):
                 if len(M) == 1:
                     x = 0.5
@@ -949,18 +943,43 @@ class renet:
             nx.draw(H, pos, node_color='w', edge_color='r' , with_labels=True)
             plt.show() # display
         if (save_plot == True):
+
             nx.draw(H, pos, node_color='w', edge_color='r' , with_labels=True, node_size=60,font_size=8, figsize=(12,12))
-            plt.savefig("graph.png")
+            if sbml_filename:
+                if os.path.exists(sbml_filename+".png"):
+                    i = 0
+                    while os.path.exists(sbml_filename+str(i)+".png"):
+                        i += 1
+                    plt.savefig(bml_filename+str(i)+".png")
+                else:
+                    plt.savefig(sbml_filename+".png")
+            else:
+                i = 0
+                while os.path.exists("graph_draw"+str(i)+".gml"):
+                    i += 1
+                plt.savefig("graph_draw"+str(i)+".png")
         if (save_graph == True):
-            nx.write_gml(H,"my.gml")
+            if sbml_filename:
+                if os.path.exists(sbml_filename+".gml"):
+                    i = 0
+                    while os.path.exists(sbml_filename+str(i)+".gml"):
+                        i += 1
+                    nx.write_gml(H,sbml_filename+str(i)+".gml")
+                    with open(sbml_filename+str(i)+".pos", "w") as f:
+                        f.write(str(pos))
+                else:
+                    nx.write_gml(H,sbml_filename+".gml")
+                    with open(sbml_filename+".pos", "w") as f:
+                        f.write(str(pos))
+            else:
+                i = 0
+                while os.path.exists("graph_file"+str(i)+".gml"):
+                    i += 1
+                nx.write_gml(H,"graph_file"+str(i)+".gml")
+                with open("graph_file"+str(i)+".pos", "a") as f:
+                    f.write(str(pos))
 
         return (H,tree_of_closed_sets)
-
-
-
-    def verbose_reactantclosure(self,ratio, number_of_nodes):
-        print "Curent ratio max_X_size/size_of_M  : "+( "%0.2f" % (ratio*100))
-        print "Number of sets (nodes) in the graph: "+str(number_of_nodes)
 
     def stringify_node(self,node):
         string = node.string_for_log()

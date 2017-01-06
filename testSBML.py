@@ -1,25 +1,33 @@
+# *-* coding: utf-8 *-*
 import sbml_to_cot as sbml2cot
 import cotlib
 
 
 #Parsing file
-
-species, reactionIDs, reactions = sbml2cot.parse_file("/Disco/COT/software/COT_analyzer/sbml_to_cot/example_models/BIOMD0000000497.xml")
+#species, reactionIDs, reactions = sbml2cot.parse_file("/Disco/COT/software/COT_analyzer/sbml_to_cot/example_models/curated/BIOMD0000000264.xml")
+species, reactionIDs, reactions = sbml2cot.parse_file("/Disco/COT/software/COT_analyzer/sbml_to_cot/example_models/curated/BIOMD0000000448.xml")
+#
+#"EL BONITO (34 reacciones, 27 especies, 7 cerrados de cardinalidad 2, todos dinámicamente desconectados": species, reactionIDs, reactions = sbml2cot.parse_file("/Disco/COT/software/COT_analyzer/sbml_to_cot/example_models/curated/BIOMD0000000448.xml")
 #species, reactionIDs, reactions = sbml2cot.parse_file("/Disco/COT/software/COT_analyzer/sbml_to_cot/example_models/curated/BIOMD0000000087.xml")
 #species, reactionIDs, reactions = sbml2cot.parse_file("/Disco/COT/OrgTools/examples/ecoli.xml")
 
 print "Number of species:"+str(len(species))
 print "Number of reactions:"+str(len(reactions))
 
+if len(species) <4 or len(reactions)<3:
+    exit()
+
 #Creating species
 for s in species:
     cotlib.species(s)
 
 #Creating reactions
-for i,r in enumerate(reactions):
-    #print "["+str(i)+"]: "+str(r)
-    cotlib.reaction(r)
-
+for r in reactions:
+    try:
+        cotlib.reaction(r)
+    except ValueError:
+        print "REPEATED REACTION!"
+        pass
 
 print "M := \n"
 cotlib.show_M()
